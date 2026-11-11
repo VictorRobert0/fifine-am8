@@ -23,6 +23,8 @@ DEFAULTS = {
     "output_name": "CABLE Input",
     "auto_check": True,     # verificar atualizações ao abrir
     "auto_update": False,   # baixar e instalar automaticamente quando houver
+    "theme": "Violeta Noturno",   # paleta de cores do skin
+    "minimize_to_tray": True,     # fechar/minimizar envia para a bandeja
 }
 
 

@@ -9,17 +9,17 @@ Build:  python -m PyInstaller fifine.spec --noconfirm
 from PyInstaller.utils.hooks import collect_all
 
 datas, binaries, hiddenimports = [], [], []
-for pkg in ("pyrnnoise", "sounddevice", "comtypes", "pycaw", "numpy"):
+for pkg in ("pyrnnoise", "sounddevice", "comtypes", "pycaw", "numpy", "pystray", "PIL"):
     d, b, h = collect_all(pkg)
     datas += d
     binaries += b
     hiddenimports += h
 
-# ícone acompanha o app (usado pela janela)
+# ícone acompanha o app (usado pela janela e bandeja)
 datas += [("fifine.ico", ".")]
 
 a = Analysis(
-    ["fifine_gui.py"],
+    ["fifine_ui.py"],
     pathex=[],
     binaries=binaries,
     datas=datas,

@@ -3,6 +3,20 @@
 Formato baseado em [Keep a Changelog](https://keepachangelog.com/pt-BR/).
 Versionamento [SemVer](https://semver.org/lang/pt-BR/).
 
+## [1.0.4] - 2026-11-11
+### Adicionado
+- Nova interface moderna: janela sem borda, título customizado, menu lateral,
+  knob circular de ganho e interruptores.
+- 4 temas de cores selecionáveis (Violeta Noturno, Âmbar, Ciano Gelo, Rubi).
+- Ícone na bandeja do sistema; fechar/minimizar envia para a bandeja.
+- Opção "Iniciar com o Windows (na bandeja)" — no app e no instalador.
+### Corrigido
+- Crash de COM (0xC0000005 em `_ctypes`): os endpoints de áudio passam a usar
+  `QueryInterface` em vez de `cast()`, eliminando o double-release de ponteiros
+  COM que o coletor de lixo disparava em qualquer thread. App agora estável.
+- Auto-recuperação de COM: os controles re-resolvem o endpoint se ele for
+  invalidado (ex.: reconectar o dispositivo).
+
 ## [1.0.3] - 2026-11-11
 ### Adicionado
 - Verificação automática de atualização ao abrir o app.

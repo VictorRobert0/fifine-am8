@@ -19,8 +19,13 @@ Requer: Windows, pycaw, comtypes.
 """
 from __future__ import annotations
 
+import sys as _sys
+# COM em modo MTA (multithreaded) antes de importar comtypes: chamadas COM mais
+# estáveis entre threads (bandeja/medidores). Config mais estável observada.
+_sys.coinit_flags = 0
+
 import comtypes
-from comtypes import CLSCTX_ALL, cast, POINTER, GUID
+from comtypes import CLSCTX_ALL, cast, POINTER, GUID, COMError
 from pycaw.pycaw import IAudioEndpointVolume, IAudioMeterInformation
 from pycaw.api.mmdeviceapi import IMMDeviceEnumerator
 from pycaw.api.mmdeviceapi.depend.structures import PROPERTYKEY
@@ -54,39 +59,59 @@ class Endpoint:
             self.name = store.GetValue(comtypes.pointer(_PKEY_FRIENDLY_NAME)).GetValue()
         except Exception:
             self.name = "(desconhecido)"
-        self._vol = cast(
-            mmdevice.Activate(IAudioEndpointVolume._iid_, CLSCTX_ALL, None),
-            POINTER(IAudioEndpointVolume),
-        )
+        # QueryInterface (não cast): cast() compartilha o ponteiro COM e causa
+        # double-release no GC (crash 0xC0000005 em comtypes __del__).
+        self._vol = mmdevice.Activate(
+            IAudioEndpointVolume._iid_, CLSCTX_ALL, None
+        ).QueryInterface(IAudioEndpointVolume)
         self._meter = None  # ativado sob demanda
+
+    # ---- auto-recuperação de COM ----
+    # Alguns componentes (ex.: ícone de bandeja, reconexão do dispositivo) podem
+    # invalidar os ponteiros COM. Se uma chamada falhar, re-resolvemos o endpoint
+    # pelo ID e tentamos novamente uma vez.
+    def _reactivate(self):
+        enum = _enumerator()
+        self._dev = enum.GetDevice(self.id)
+        self._vol = self._dev.Activate(
+            IAudioEndpointVolume._iid_, CLSCTX_ALL, None
+        ).QueryInterface(IAudioEndpointVolume)
+        self._meter = None
+
+    def _guard(self, fn):
+        try:
+            return fn()
+        except (OSError, COMError):
+            self._reactivate()
+            return fn()
 
     # ---- nível em porcentagem (0..100), igual ao slider do Windows ----
     def get_percent(self) -> float:
-        return self._vol.GetMasterVolumeLevelScalar() * 100.0
+        return self._guard(lambda: self._vol.GetMasterVolumeLevelScalar() * 100.0)
 
     def set_percent(self, pct: float) -> None:
-        pct = max(0.0, min(100.0, float(pct)))
-        self._vol.SetMasterVolumeLevelScalar(pct / 100.0, None)
+        p = max(0.0, min(100.0, float(pct)))
+        self._guard(lambda: self._vol.SetMasterVolumeLevelScalar(p / 100.0, None))
 
     # ---- nível em dB (valor real de hardware) ----
     def get_db(self) -> float:
-        return self._vol.GetMasterVolumeLevel()
+        return self._guard(lambda: self._vol.GetMasterVolumeLevel())
 
     def set_db(self, db: float) -> None:
         lo, hi, _ = self.db_range()
-        db = max(lo, min(hi, float(db)))
-        self._vol.SetMasterVolumeLevel(db, None)
+        d = max(lo, min(hi, float(db)))
+        self._guard(lambda: self._vol.SetMasterVolumeLevel(d, None))
 
     def db_range(self):
         """(min_dB, max_dB, passo_dB)."""
-        return self._vol.GetVolumeRange()
+        return self._guard(lambda: self._vol.GetVolumeRange())
 
     # ---- mute ----
     def get_mute(self) -> bool:
-        return bool(self._vol.GetMute())
+        return bool(self._guard(lambda: self._vol.GetMute()))
 
     def set_mute(self, muted: bool) -> None:
-        self._vol.SetMute(bool(muted), None)
+        self._guard(lambda: self._vol.SetMute(bool(muted), None))
 
     def toggle_mute(self) -> bool:
         new = not self.get_mute()
@@ -94,16 +119,17 @@ class Endpoint:
         return new
 
     def channels(self) -> int:
-        return self._vol.GetChannelCount()
+        return self._guard(lambda: self._vol.GetChannelCount())
 
     # ---- medidor de pico em tempo real (0.0..1.0) para VU meter ----
     def peak(self) -> float:
-        if self._meter is None:
-            self._meter = cast(
-                self._dev.Activate(IAudioMeterInformation._iid_, CLSCTX_ALL, None),
-                POINTER(IAudioMeterInformation),
-            )
-        return self._meter.GetPeakValue()
+        def _p():
+            if self._meter is None:
+                self._meter = self._dev.Activate(
+                    IAudioMeterInformation._iid_, CLSCTX_ALL, None
+                ).QueryInterface(IAudioMeterInformation)
+            return self._meter.GetPeakValue()
+        return self._guard(_p)
 
     def snapshot(self) -> dict:
         lo, hi, step = self.db_range()

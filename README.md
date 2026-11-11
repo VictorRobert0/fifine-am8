@@ -19,6 +19,9 @@ com **presets** prontos e **atualização automática**.
 
 ## Recursos
 
+- **Interface moderna** (janela sem borda, menu lateral, knob circular de ganho),
+  com **4 temas de cores** e **ícone na bandeja** do sistema
+- **Iniciar com o Windows** direto na bandeja (opcional)
 - **Ganho do microfone** (0–10 dB de hardware) — ler e ajustar
 - **Mute** do mic e **volume/mute do fone** de monitoramento
 - **Ganho digital até +30 dB** — vai *além* do limite do hardware

@@ -17,7 +17,7 @@ def main():
     pythonw = os.path.join(os.path.dirname(sys.executable), "pythonw.exe")
     if not os.path.exists(pythonw):
         pythonw = sys.executable  # fallback (mostra console)
-    target_script = os.path.join(PROJ, "fifine_gui.py")
+    target_script = os.path.join(PROJ, "fifine_ui.py")
     icon = os.path.join(PROJ, "fifine.ico")
 
     ps = f'''

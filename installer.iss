@@ -39,6 +39,13 @@ Name: "english"; MessagesFile: "compiler:Default.isl"
 
 [Tasks]
 Name: "desktopicon"; Description: "{cm:CreateDesktopIcon}"; GroupDescription: "{cm:AdditionalIcons}"; Flags: checkedonce
+Name: "startup"; Description: "Iniciar com o Windows (na bandeja do sistema)"; GroupDescription: "Inicialização:"; Flags: checkedonce
+
+[Registry]
+; autostart na bandeja — abre minimizado com --tray
+Root: HKCU; Subkey: "Software\Microsoft\Windows\CurrentVersion\Run"; \
+  ValueType: string; ValueName: "FifineAM8Control"; \
+  ValueData: """{app}\{#MyAppExe}"" --tray"; Flags: uninsdeletevalue; Tasks: startup
 
 [Files]
 ; conteúdo do build onedir do PyInstaller
