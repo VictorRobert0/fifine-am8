@@ -5,6 +5,13 @@ Windows: controle de **ganho**, **mute**, **fone de monitoramento**, **ganho dig
 além do hardware**, **supressão de ruído estilo Discord (RNNoise)** e **noise gate**,
 com **presets** prontos e **atualização automática**.
 
+**Desenvolvido por DZK.**
+
+> **Open Source:** este projeto é livre (licença MIT) e foi criado para **ajudar a
+> gerenciar melhor a utilização do microfone Fifine AM8** — dando aos usuários o
+> controle de ganho e a supressão de ruído que o aparelho sozinho não oferece.
+> Contribuições, issues e melhorias são bem-vindas.
+
 > **Baixar:** pegue o instalador mais recente em
 > [**Releases**](https://github.com/VictorRobert0/fifine-am8/releases).
 
@@ -125,5 +132,6 @@ python build.py               # PyInstaller + Inno -> Output\FifineAM8-Setup-<ve
 
 ## Licença
 
-Defina a licença do projeto (ex.: MIT) em `LICENSE`. O RNNoise e o VB-Audio Cable
-têm licenças próprias; o VB-Cable **não** é redistribuído por este projeto.
+Projeto **open source** sob a licença **MIT** (veja [`LICENSE`](LICENSE)) —
+Desenvolvido por **DZK**. O RNNoise e o VB-Audio Cable têm licenças próprias;
+o VB-Cable **não** é redistribuído por este projeto.

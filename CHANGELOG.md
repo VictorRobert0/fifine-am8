@@ -3,6 +3,14 @@
 Formato baseado em [Keep a Changelog](https://keepachangelog.com/pt-BR/).
 Versionamento [SemVer](https://semver.org/lang/pt-BR/).
 
+## [1.0.1] - 2026-11-11
+### Adicionado
+- Crédito "Desenvolvido por DZK" no app (janela, rodapé e linha de comando).
+- Licença MIT (`LICENSE`) — projeto oficialmente open source.
+- README destacando o propósito open source e de gestão do uso do AM8.
+### Observação
+- Primeira atualização publicada para validar o fluxo de auto-update.
+
 ## [1.0.0] - 2026-11-11
 ### Adicionado
 - Controle de hardware do AM8 via Core Audio: ganho (0–10 dB), mute, volume e

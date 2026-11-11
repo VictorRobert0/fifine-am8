@@ -9,11 +9,12 @@ Ao lançar uma nova versão:
 O app dos usuários detecta a nova tag e se oferece para atualizar.
 """
 
-__version__ = "1.0.0"
+__version__ = "1.0.1"
 
 APP_NAME = "Fifine AM8 Control"
 APP_ID = "FifineAM8Control"              # usado em caminhos/registro
-PUBLISHER = "Fifine AM8 Control"         # troque pelo seu nome/estúdio
+AUTHOR = "DZK"                           # desenvolvido por
+PUBLISHER = "DZK"                        # editor (instalador/registro)
 
 # Repositório no GitHub onde os Releases (instaladores) são publicados.
 # Formato "usuario/repositorio". Troque pelo seu antes de distribuir.

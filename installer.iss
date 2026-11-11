@@ -7,7 +7,7 @@
 #endif
 #define MyAppName "Fifine AM8 Control"
 #define MyAppExe "FifineAM8Control.exe"
-#define MyPublisher "Fifine AM8 Control"
+#define MyPublisher "DZK"
 #define MyAppURL "https://github.com/VictorRobert0/fifine-am8"
 
 [Setup]

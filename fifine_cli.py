@@ -200,7 +200,7 @@ def cmd_update(*args):
 
 def cmd_version():
     import fifine_version as ver
-    print(f"{ver.APP_NAME} v{ver.__version__}")
+    print(f"{ver.APP_NAME} v{ver.__version__} — Desenvolvido por {ver.AUTHOR}")
 
 
 def cmd_presets():

@@ -55,7 +55,7 @@ TRACK = "#2c2f3a"
 class FifineApp:
     def __init__(self, root: tk.Tk):
         self.root = root
-        root.title("Fifine Control")
+        root.title(f"{ver.APP_NAME} — por {ver.AUTHOR}")
         root.configure(bg=BG)
         root.geometry("480x680")
         root.minsize(460, 640)
@@ -180,7 +180,7 @@ class FifineApp:
 
         bar = ttk.Frame(parent, padding=(14, 0, 14, 8))
         bar.pack(fill="x", side="bottom")
-        ttk.Label(bar, text=f"{ver.APP_NAME}  v{ver.__version__}",
+        ttk.Label(bar, text=f"{ver.APP_NAME}  v{ver.__version__}  ·  Desenvolvido por {ver.AUTHOR}",
                   style="Dim.TLabel").pack(side="left")
         ttk.Button(bar, text="Verificar atualizações",
                    command=self.check_updates).pack(side="right")
