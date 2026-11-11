@@ -1,0 +1,26 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+
+# Build / empacotamento
+build/
+dist/
+Output/
+*.manifest
+
+# Preferências e logs locais (não distribuir)
+config.json
+*.log
+
+# Prévia gerada do ícone
+fifine_preview.png
+
+# VB-Cable redistribuível (adicione manualmente se tiver licença)
+vendor/
+
+# Editores / SO
+.vscode/
+.idea/
+Thumbs.db
+desktop.ini
