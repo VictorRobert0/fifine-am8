@@ -3,6 +3,20 @@
 Formato baseado em [Keep a Changelog](https://keepachangelog.com/pt-BR/).
 Versionamento [SemVer](https://semver.org/lang/pt-BR/).
 
+## [1.0.6] - 2026-11-11
+### Corrigido
+- **Crash na inicialização / interface "sumindo"** (regressão do 1.0.5): a barra de
+  atualização era ancorada com `pack(before=...)` apontando para **ela mesma** (o
+  banner é o primeiro filho, ainda não empacotado, do contêiner de conteúdo).
+  Isso lançava `TclError: window isn't packed`. No 1.0.5 a verificação de
+  atualização roda de forma síncrona no `__init__`, então a exceção **derrubava a
+  abertura do app**; no 1.0.4 ela rodava dentro de um `after()` e era engolida
+  pelo tratador global — por isso o **aviso/botão de atualização nunca aparecia**.
+  Agora o banner ancora antes do primeiro filho que **não seja** o próprio banner.
+- Com isso, voltam a funcionar: abrir o app, navegar entre Microfone/Mic
+  Virtual/Presets/Ajustes e o aviso "Procurando atualizações… / Você está na
+  versão mais recente / Nova versão disponível".
+
 ## [1.0.5] - 2026-11-11
 ### Corrigido
 - Atualização "estilo launcher": antes o app fechava ao atualizar e **não

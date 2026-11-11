@@ -637,7 +637,10 @@ class SkinApp:
 
     def _banner_show(self):
         b = self._banner
-        kids = self.content.winfo_children()
+        # fica no topo do conteúdo: ancora ANTES do primeiro filho que não seja
+        # o próprio banner. Usar before=b (o banner ainda não empacotado) lançava
+        # "window isn't packed" e derrubava a inicialização / escondia o aviso.
+        kids = [k for k in self.content.winfo_children() if k is not b]
         if kids:
             b.pack(fill="x", before=kids[0])
         else:
