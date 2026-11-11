@@ -1,0 +1,81 @@
+; FifineVirtualMic.inf — molde de INF para um microfone de áudio virtual (WDM/KS).
+; Estrutura derivada (via REA) do INF real do VB-Audio Virtual Cable e das
+; amostras de áudio da Microsoft. Use com o .sys compilado a partir do SYSVAD.
+;
+; AJUSTE antes de usar: nome do .sys, GUIDs próprios, strings e DriverVer.
+; Requer assinatura (test-signing no dev; EV + atestação para distribuir).
+
+[Version]
+Signature   = "$WINDOWS NT$"
+Class       = MEDIA
+ClassGuid   = {4d36e96c-e325-11ce-bfc1-08002be10318}
+Provider    = %ManufacturerName%
+CatalogFile = FifineVirtualMic.cat
+DriverVer   = ; preenchido por stampinf no build
+PnpLockDown = 1
+
+[Manufacturer]
+%ManufacturerName% = Standard,NTamd64.10.0...19041
+
+[Standard.NTamd64.10.0...19041]
+%DeviceName% = FifineVMic, Root\FifineVirtualMic
+
+[SourceDisksNames]
+222 = %DiskName%
+
+[SourceDisksFiles]
+FifineVMic.sys = 222
+
+[DestinationDirs]
+DefaultDestDir      = 13           ; Driver Store
+FifineVMic.CopyList = 13
+
+; ---------------- instalação ----------------
+[FifineVMic.NT]
+Include    = ks.inf, wdmaudio.inf
+Needs      = KS.Registration, WDMAUDIO.Registration
+CopyFiles  = FifineVMic.CopyList
+AddReg     = FifineVMic.AddReg
+
+[FifineVMic.CopyList]
+FifineVMic.sys
+
+[FifineVMic.AddReg]
+HKR,Drivers,SubClasses,,"wave,mixer"
+HKR,Drivers\wave\wdmaud.drv,Driver,,wdmaud.drv
+HKR,Drivers\wave\wdmaud.drv,Description,,%DeviceName%
+HKR,Drivers\mixer\wdmaud.drv,Driver,,wdmaud.drv
+HKR,Drivers\mixer\wdmaud.drv,Description,,%DeviceName%
+
+[FifineVMic.NT.Interfaces]
+; registra o endpoint de CAPTURA (microfone virtual)
+AddInterface = %KSCATEGORY_AUDIO%, %KSNAME_WaveCapture%, FifineVMic.I.Capture
+AddInterface = %KSCATEGORY_CAPTURE%, %KSNAME_WaveCapture%, FifineVMic.I.Capture
+
+[FifineVMic.I.Capture]
+AddReg = FifineVMic.I.Capture.AddReg
+
+[FifineVMic.I.Capture.AddReg]
+HKR,,FriendlyName,,%CaptureName%
+HKR,,CLSID,,%Proxy.CLSID%
+
+; ---------------- serviço ----------------
+[FifineVMic.NT.Services]
+AddService = FifineVMic, 0x00000002, FifineVMic.Service
+
+[FifineVMic.Service]
+DisplayName   = %DeviceName%
+ServiceType   = 1                   ; SERVICE_KERNEL_DRIVER
+StartType     = 3                   ; SERVICE_DEMAND_START
+ErrorControl  = 1
+ServiceBinary = %13%\FifineVMic.sys
+
+[Strings]
+ManufacturerName = "DZK"
+DiskName         = "Fifine Virtual Mic Install Disk"
+DeviceName       = "Fifine Virtual Mic"
+CaptureName      = "Fifine Virtual Mic (Captura)"
+Proxy.CLSID      = "{17CCA71B-ECD7-11D0-B908-00A0C9223196}"
+KSCATEGORY_AUDIO   = "{6994AD04-93EF-11D0-A3CC-00A0C9223196}"
+KSCATEGORY_CAPTURE = "{65E8773D-8F56-11D0-A3B9-00A0C9223196}"
+KSNAME_WaveCapture = "Wave"
