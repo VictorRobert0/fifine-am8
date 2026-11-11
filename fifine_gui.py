@@ -71,17 +71,22 @@ class FifineApp:
         self.mon = None
         self.engine = fe.AudioEngine() if _ENGINE_OK else None
         self._syncing = False
-
-        self._build_style()
-        nb = ttk.Notebook(root)
-        nb.pack(fill="both", expand=True, padx=8, pady=8)
-        self.tab_hw = ttk.Frame(nb)
-        self.tab_proc = ttk.Frame(nb)
-        nb.add(self.tab_hw, text="  Hardware  ")
-        nb.add(self.tab_proc, text="  Mic Virtual (ganho+ / ruído)  ")
+        self._update_info = None
+        _c = cfg.load()
+        self._auto_check = bool(_c.get("auto_check", True))
+        self._auto_update = bool(_c.get("auto_update", False))
 
         # captura exceções de qualquer callback do Tk (senão morrem em silêncio no pythonw)
         root.report_callback_exception = self._tk_exc
+
+        self._build_style()
+        self._build_banner(root)          # barra de atualização (oculta até haver update)
+        self.nb = ttk.Notebook(root)
+        self.nb.pack(fill="both", expand=True, padx=8, pady=8)
+        self.tab_hw = ttk.Frame(self.nb)
+        self.tab_proc = ttk.Frame(self.nb)
+        self.nb.add(self.tab_hw, text="  Hardware  ")
+        self.nb.add(self.tab_proc, text="  Mic Virtual (ganho+ / ruído)  ")
 
         self._build_hw(self.tab_hw)
         self._build_proc(self.tab_proc)
@@ -89,6 +94,7 @@ class FifineApp:
         self.detect()
         self._restore_config()
         self._tick()
+        self._start_update_check()        # verificação automática ao abrir
         root.protocol("WM_DELETE_WINDOW", self._on_close)
 
     _exc_shown = False
@@ -180,10 +186,13 @@ class FifineApp:
 
         bar = ttk.Frame(parent, padding=(14, 0, 14, 8))
         bar.pack(fill="x", side="bottom")
-        ttk.Label(bar, text=f"{ver.APP_NAME}  v{ver.__version__}  ·  Desenvolvido por {ver.AUTHOR}",
+        ttk.Label(bar, text=f"{ver.APP_NAME}  v{ver.__version__}  ·  por {ver.AUTHOR}",
                   style="Dim.TLabel").pack(side="left")
-        ttk.Button(bar, text="Verificar atualizações",
+        ttk.Button(bar, text="Verificar agora",
                    command=self.check_updates).pack(side="right")
+        self.autoupd_var = tk.BooleanVar(value=self._auto_update)
+        ttk.Checkbutton(bar, text="Atualizar automaticamente", variable=self.autoupd_var,
+                        command=self._on_autoupd).pack(side="right", padx=(0, 10))
 
     # ====================================================== ABA MIC VIRTUAL
     def _build_proc(self, parent):
@@ -321,6 +330,8 @@ class FifineApp:
                 "hpf_enabled": self.hpf_var.get(),
                 "limiter_enabled": self.lim_var.get(),
                 "output_name": sel,
+                "auto_check": self._auto_check,
+                "auto_update": getattr(self, "_auto_update", False),
             })
         except Exception:
             pass
@@ -354,8 +365,72 @@ class FifineApp:
             except Exception:
                 pass
 
+    def _on_autoupd(self):
+        self._auto_update = self.autoupd_var.get()
+        try:
+            c = cfg.load()
+            c["auto_update"] = self._auto_update
+            c["auto_check"] = self._auto_check
+            cfg.save(c)
+        except Exception:
+            pass
+
+    # ---------------------------------------------------- barra de atualização
+    def _build_banner(self, root):
+        """Barra no topo que aparece quando há atualização (oculta por padrão)."""
+        self.banner = tk.Frame(root, bg="#223a57")
+        self.banner_lbl = tk.Label(self.banner, bg="#223a57", fg="#eaf2ff",
+                                   font=("Segoe UI", 10), anchor="w")
+        self.banner_lbl.pack(side="left", padx=12, pady=8)
+        self.banner_later = tk.Button(self.banner, text="Depois", bd=0, relief="flat",
+                                      bg="#223a57", fg="#9fb6d6", cursor="hand2",
+                                      activebackground="#2d4a6d", activeforeground="#fff",
+                                      command=self._dismiss_banner)
+        self.banner_later.pack(side="right", padx=(0, 12))
+        self.banner_btn = tk.Button(self.banner, text="Atualizar agora", bd=0, relief="flat",
+                                    bg=ACCENT, fg="#06201d", cursor="hand2",
+                                    activebackground="#6fe0d4",
+                                    font=("Segoe UI Semibold", 10),
+                                    command=self._do_update)
+        self.banner_btn.pack(side="right", padx=(0, 8), pady=5)
+        self.banner_pb = ttk.Progressbar(self.banner, mode="determinate", length=150)
+        # a barra de progresso só é empacotada durante o download
+
+    def _show_banner(self):
+        self.banner.pack(side="top", fill="x", before=self.nb)
+
+    def _dismiss_banner(self):
+        self.banner.pack_forget()
+
+    def _start_update_check(self):
+        """Verifica atualizações ao abrir (em thread, se auto_check ligado)."""
+        if not getattr(self, "_auto_check", True):
+            return
+        import threading
+
+        def worker():
+            try:
+                import fifine_update as up
+                info = up.check()
+            except Exception:
+                return  # silencioso na verificação automática
+            if info and info.available:
+                self.root.after(0, lambda: self._on_update_found(info))
+
+        threading.Thread(target=worker, daemon=True).start()
+
+    def _on_update_found(self, info):
+        self._update_info = info
+        self.banner_lbl.config(
+            text=f"⬆  Nova versão {info.latest} disponível  (você tem {info.current})")
+        self.banner_btn.config(state="normal", text="Atualizar agora")
+        self.banner_later.config(state="normal")
+        self._show_banner()
+        if getattr(self, "_auto_update", False):
+            self._do_update()   # opcional: baixa e instala sozinho
+
     def check_updates(self):
-        """Verifica atualizações em thread separada (não trava a GUI)."""
+        """Botão manual: verifica e, se houver, mostra a barra; senão avisa."""
         import threading
 
         def worker():
@@ -366,27 +441,56 @@ class FifineApp:
                 self.root.after(0, lambda: messagebox.showwarning(
                     "Atualização", f"Não foi possível verificar:\n{exc}"))
                 return
-            self.root.after(0, lambda: self._update_result(info))
+            if info.available:
+                self.root.after(0, lambda: self._on_update_found(info))
+            else:
+                self.root.after(0, lambda: messagebox.showinfo(
+                    "Atualização", f"Você está na versão mais recente ({info.current})."))
 
         threading.Thread(target=worker, daemon=True).start()
 
-    def _update_result(self, info):
-        if not info.available:
-            messagebox.showinfo("Atualização",
-                                f"Você está na versão mais recente ({info.current}).")
+    def _do_update(self):
+        """Baixa o instalador mostrando progresso na barra e o executa."""
+        info = getattr(self, "_update_info", None)
+        if not info:
             return
-        msg = (f"Nova versão disponível: {info.latest}\n"
-               f"(atual: {info.current})\n\n{(info.notes or '')[:500]}\n\n"
-               "Baixar e instalar agora?")
-        if messagebox.askyesno("Atualização disponível", msg):
+        import threading
+        self.banner_btn.config(state="disabled")
+        self.banner_later.config(state="disabled")
+        self.banner_lbl.config(text=f"Baixando {info.latest}…")
+        self.banner_pb["value"] = 0
+        self.banner_pb.pack(side="right", padx=(0, 8), pady=5)
+
+        def prog(frac):
+            self.root.after(0, lambda: self.banner_pb.configure(value=frac * 100))
+
+        def worker():
             try:
                 import fifine_update as up
-                path = up.download(info)
-                if self.engine and self.engine.running:
-                    self.engine.stop()
-                up.run_installer_and_exit(path)
+                path = up.download(info, progress=prog)
             except Exception as exc:
-                messagebox.showerror("Atualização", f"Falha ao baixar/instalar:\n{exc}")
+                self.root.after(0, lambda: self._update_error(exc))
+                return
+            self.root.after(0, lambda: self._update_ready(path))
+
+        threading.Thread(target=worker, daemon=True).start()
+
+    def _update_error(self, exc):
+        self.banner_pb.pack_forget()
+        self.banner_lbl.config(text=f"Falha ao baixar: {exc}")
+        self.banner_btn.config(state="normal")
+        self.banner_later.config(state="normal")
+
+    def _update_ready(self, path):
+        self.banner_pb.configure(value=100)
+        self.banner_lbl.config(text="Atualização baixada — abrindo o instalador…")
+        try:
+            if self.engine and self.engine.running:
+                self.engine.stop()
+        except Exception:
+            pass
+        import fifine_update as up
+        self.root.after(700, lambda: up.run_installer_and_exit(path))
 
     def _maybe_redetect(self):
         """Se um endpoint ficou inválido (device removido/ocupado), re-resolve."""

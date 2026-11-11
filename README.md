@@ -73,8 +73,11 @@ AM8 → mono → corte de grave → RNNoise → mix → noise gate → GANHO DIG
 
 ## Atualizações
 
-O app verifica novas versões no GitHub (**Verificar atualizações** na aba Hardware)
-e baixa/instala o novo pacote. Também por linha de comando:
+Ao abrir, o app **verifica sozinho** se há uma versão nova e, se houver, mostra uma
+**barra no topo** com a opção de atualizar — baixa com barra de progresso e abre o
+instalador. É opcional: dá para **adiar** ("Depois") ou marcar **"Atualizar
+automaticamente"** (baixa e instala sem clique). Também há o botão **Verificar
+agora** e a linha de comando:
 
 ```powershell
 FifineAM8Control.exe   # ou, em dev:  python fifine_cli.py update

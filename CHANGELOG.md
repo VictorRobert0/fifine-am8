@@ -3,6 +3,13 @@
 Formato baseado em [Keep a Changelog](https://keepachangelog.com/pt-BR/).
 Versionamento [SemVer](https://semver.org/lang/pt-BR/).
 
+## [1.0.3] - 2026-11-11
+### Adicionado
+- Verificação automática de atualização ao abrir o app.
+- Barra de atualização no topo da janela: mostra a nova versão e baixa com
+  barra de progresso visível, abrindo o instalador ao final. Opcional — dá para
+  adiar ("Depois") ou ativar "Atualizar automaticamente" (baixa sem clique).
+
 ## [1.0.2] - 2026-11-11
 ### Corrigido
 - Pipeline de release (CI): `build.py` quebrava no runner do GitHub por causa de
