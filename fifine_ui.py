@@ -186,7 +186,7 @@ class SkinApp:
     def _log_exc(self, *a):
         try:
             import traceback, datetime
-            with open(os.path.join(HERE, "fifine_error.log"), "a", encoding="utf-8") as fh:
+            with open(os.path.join(cfg.data_dir(), "fifine_error.log"), "a", encoding="utf-8") as fh:
                 fh.write(f"\n== {datetime.datetime.now():%Y-%m-%d %H:%M:%S} ==\n")
                 fh.write(traceback.format_exc())
         except Exception:
@@ -624,47 +624,92 @@ class SkinApp:
             messagebox.showwarning("Autostart", f"Não foi possível alterar: {exc}")
 
     # ----------------------------------------------------- atualização
+    #
+    # Experiência estilo "launcher": ao abrir, o app avisa que está procurando
+    # atualizações; depois mostra que já está em dia ou oferece a nova versão.
+    def _banner_clear(self):
+        b = getattr(self, "_banner", None)
+        if not b:
+            return
+        for w in b.winfo_children():
+            w.destroy()
+        b.pack_forget()
+
+    def _banner_show(self):
+        b = self._banner
+        kids = self.content.winfo_children()
+        if kids:
+            b.pack(fill="x", before=kids[0])
+        else:
+            b.pack(fill="x")
+
     def _auto_update_check(self):
         if not self.conf.get("auto_check", True):
             return
-
-        def worker():
-            try:
-                import fifine_update as up
-                info = up.check()
-            except Exception:
-                return
-            if info and info.available:
-                self.root.after(0, lambda: self._show_banner(info))
-        threading.Thread(target=worker, daemon=True).start()
+        self._run_check(manual=False)
 
     def _check_updates_manual(self):
+        self._run_check(manual=True)
+
+    def _run_check(self, manual=False):
+        self._show_checking()
         def worker():
             try:
                 import fifine_update as up
                 info = up.check()
             except Exception as exc:
-                self.root.after(0, lambda: messagebox.showwarning("Atualização", str(exc)))
+                self.root.after(0, lambda: self._show_check_error(exc, manual))
                 return
-            if info.available:
+            if info and info.available:
                 self.root.after(0, lambda: self._show_banner(info))
             else:
-                self.root.after(0, lambda: messagebox.showinfo(
-                    "Atualização", f"Você está na versão mais recente ({info.current})."))
+                self.root.after(0, lambda: self._show_uptodate(info))
         threading.Thread(target=worker, daemon=True).start()
+
+    def _show_checking(self):
+        self._banner_clear()
+        b = self._banner
+        b.configure(bg="#223a57")
+        self._banner_show()
+        tk.Label(b, text="🔄  Procurando atualizações…", bg="#223a57",
+                 fg="#eaf2ff", font=("Segoe UI", 10)).pack(side="left", padx=12, pady=7)
+        pb = ttk.Progressbar(b, length=120, mode="indeterminate")
+        pb.pack(side="right", padx=12)
+        try:
+            pb.start(12)
+        except Exception:
+            pass
+
+    def _show_uptodate(self, info):
+        self._banner_clear()
+        b = self._banner
+        b.configure(bg="#1f3b2e")
+        self._banner_show()
+        cur = (info.current if info else "v" + ver.__version__)
+        tk.Label(b, text=f"✓  Você está na versão mais recente ({cur})", bg="#1f3b2e",
+                 fg="#d7f5e3", font=("Segoe UI", 10)).pack(side="left", padx=12, pady=7)
+        # some sozinho depois de alguns segundos (feel de launcher)
+        self.root.after(4000, self._banner_clear)
+
+    def _show_check_error(self, exc, manual):
+        self._banner_clear()
+        if manual:
+            messagebox.showwarning("Atualização",
+                                   f"Não foi possível verificar agora.\n{exc}")
 
     def _show_banner(self, info):
         self._update_info = info
+        self._banner_clear()
         b = self._banner
-        for w in b.winfo_children():
-            w.destroy()
-        b.pack(fill="x", before=self.content.winfo_children()[0] if self.content.winfo_children() else None)
-        b.pack(fill="x")
+        b.configure(bg="#223a57")
+        self._banner_show()
         tk.Label(b, text=f"⬆  Nova versão {info.latest} disponível", bg="#223a57",
                  fg="#eaf2ff", font=("Segoe UI", 10)).pack(side="left", padx=12, pady=7)
-        tk.Button(b, text="Depois", command=b.pack_forget, bg="#223a57", fg="#9fb6d6",
+        tk.Button(b, text="Depois", command=self._banner_clear, bg="#223a57", fg="#9fb6d6",
                   relief="flat", bd=0, cursor="hand2").pack(side="right", padx=10)
         self._pbar = ttk.Progressbar(b, length=140, mode="determinate")
+        self._pstat = tk.Label(b, text="", bg="#223a57", fg="#9fb6d6",
+                               font=("Segoe UI", 9))
         tk.Button(b, text="Atualizar agora", command=self._do_update, **self._btn(accent=True)
                   ).pack(side="right", padx=6)
         if self.conf.get("auto_update", False):
@@ -674,6 +719,8 @@ class SkinApp:
         info = self._update_info
         if not info:
             return
+        self._pstat.configure(text="Baixando…")
+        self._pstat.pack(side="right", padx=(8, 2))
         self._pbar.pack(side="right", padx=8)
 
         def prog(f):
@@ -691,12 +738,26 @@ class SkinApp:
 
     def _finish_update(self, path):
         try:
+            self._pbar.configure(value=100)
+            self._pstat.configure(text="Instalando e reiniciando…")
+        except Exception:
+            pass
+        try:
             if self.engine and self.engine.running:
                 self.engine.stop()
         except Exception:
             pass
         import fifine_update as up
-        up.run_installer_and_exit(path)
+        # Dá um instante para a UI pintar "Instalando…" e então dispara o
+        # instalador (silencioso + elevado). Em caso de sucesso, encerra aqui.
+        def go():
+            ok = up.run_installer_and_exit(path)
+            if ok is False:
+                messagebox.showerror(
+                    "Atualização",
+                    "Não foi possível iniciar a instalação da atualização.\n"
+                    "Abra o instalador manualmente:\n" + path)
+        self.root.after(150, go)
 
     # ----------------------------------------------------- bandeja
     def _start_tray(self):

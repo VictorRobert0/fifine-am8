@@ -3,6 +3,27 @@
 Formato baseado em [Keep a Changelog](https://keepachangelog.com/pt-BR/).
 Versionamento [SemVer](https://semver.org/lang/pt-BR/).
 
+## [1.0.5] - 2026-11-11
+### Corrigido
+- Atualização "estilo launcher": antes o app fechava ao atualizar e **não
+  voltava** (o instalador era disparado sem elevação limpa e sem reabrir o app).
+  Agora o updater roda o instalador em modo silencioso e elevado (um único UAC),
+  fecha a instância em execução, troca os arquivos e **reabre o app sozinho** já
+  na versão nova.
+- Preferências não eram lembradas: o `config.json` era salvo dentro de
+  `Program Files` (sem permissão de escrita). Agora fica em
+  `%APPDATA%\Fifine AM8 Control\` — e migra as preferências antigas uma vez. O
+  log de erros também passou para essa pasta gravável.
+### Adicionado
+- Aviso de verificação ao abrir: "🔄 Procurando atualizações…" e, em seguida,
+  "✓ Você está na versão mais recente" ou a oferta da nova versão com barra de
+  progresso ("Baixando…" → "Instalando e reiniciando…").
+- Instalador fecha o app em execução antes de trocar os arquivos
+  (`CloseApplications`), evitando falhas por arquivo travado.
+### Removido
+- Interface antiga (`fifine_gui.py`): descontinuada em favor do design novo
+  (`fifine_ui.py`). Removido o atalho que ainda apontava para ela.
+
 ## [1.0.4] - 2026-11-11
 ### Adicionado
 - Nova interface moderna: janela sem borda, título customizado, menu lateral,

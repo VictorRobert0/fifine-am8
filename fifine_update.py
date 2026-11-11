@@ -99,13 +99,46 @@ def download(info: UpdateInfo, progress=None) -> str:
     return dest
 
 
-def run_installer_and_exit(path: str):
-    """Executa o instalador baixado e encerra o app para permitir a troca."""
+def run_installer_and_exit(path: str) -> bool:
+    """Aplica a atualização no estilo launcher e encerra o app.
+
+    Roda o instalador do Inno em modo silencioso e **elevado** (um único UAC).
+    O instalador fecha a instância em execução, troca os arquivos e reabre o app
+    já na versão nova — por isso o app "volta sozinho". Se o usuário recusar o
+    UAC, cai no modo interativo (assistente visível) como alternativa.
+
+    Devolve True se o instalador foi disparado; só retorna em caso de falha ao
+    lançar (quando dá certo, encerra o processo).
+    """
+    # /VERYSILENT: sem assistente · /SUPPRESSMSGBOXES: sem caixas · /NORESTART:
+    # nunca reinicia o PC · /NOCANCEL: o usuário não cancela no meio da troca.
+    params = "/VERYSILENT /SUPPRESSMSGBOXES /NORESTART /NOCANCEL"
+    launched = False
     try:
-        os.startfile(path)  # type: ignore[attr-defined]
-    except AttributeError:
-        subprocess.Popen([path])
-    sys.exit(0)
+        import ctypes
+        # ShellExecuteW com o verbo "runas" → pede elevação com UM prompt de UAC.
+        rc = ctypes.windll.shell32.ShellExecuteW(None, "runas", path, params, None, 1)
+        launched = int(rc) > 32  # <=32 = erro (ex.: usuário recusou o UAC)
+    except Exception:
+        launched = False
+
+    if not launched:
+        # Alternativa: abre o assistente visível (ainda pede elevação sozinho).
+        try:
+            os.startfile(path)  # type: ignore[attr-defined]
+            launched = True
+        except AttributeError:
+            try:
+                subprocess.Popen([path])
+                launched = True
+            except Exception:
+                launched = False
+
+    if launched:
+        # Sai "duro": evita que a thread da bandeja segure o processo e deixe
+        # arquivos travados durante a troca feita pelo instalador.
+        os._exit(0)
+    return False
 
 
 # --- uso por linha de comando ---

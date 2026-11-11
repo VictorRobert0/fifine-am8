@@ -32,6 +32,9 @@ ArchitecturesAllowed=x64compatible
 ArchitecturesInstallIn64BitMode=x64compatible
 ; não exige admin se instalar na pasta do usuário; autopf escolhe conforme privilégio
 PrivilegesRequiredOverridesAllowed=dialog commandline
+; fecha o app em execução antes de trocar os arquivos (atualização estilo launcher)
+CloseApplications=yes
+RestartApplications=no
 
 [Languages]
 Name: "brazilianportuguese"; MessagesFile: "compiler:Languages\BrazilianPortuguese.isl"
@@ -60,10 +63,18 @@ Name: "{group}\{cm:UninstallProgram,{#MyAppName}}"; Filename: "{uninstallexe}"
 Name: "{autodesktop}\{#MyAppName}"; Filename: "{app}\{#MyAppExe}"; Tasks: desktopicon
 
 [Run]
-; oferece abrir o app ao final
+; instalação interativa: oferece abrir o app ao final (caixinha no assistente)
 Filename: "{app}\{#MyAppExe}"; Description: "{cm:LaunchProgram,{#MyAppName}}"; Flags: nowait postinstall skipifsilent
+; atualização silenciosa (auto-update do app): reabre o app sozinho, sem elevação
+Filename: "{app}\{#MyAppExe}"; Flags: nowait runasoriginaluser; Check: IsSilentRun
 
 [Code]
+function IsSilentRun(): Boolean;
+begin
+  { verdadeiro quando o instalador roda em /SILENT ou /VERYSILENT (auto-update) }
+  Result := WizardSilent();
+end;
+
 function VbCableInstalled(): Boolean;
 begin
   { detecta o driver do VB-Audio Virtual Cable pelo serviço WDM }
