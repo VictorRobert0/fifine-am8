@@ -3,6 +3,12 @@
 Formato baseado em [Keep a Changelog](https://keepachangelog.com/pt-BR/).
 Versionamento [SemVer](https://semver.org/lang/pt-BR/).
 
+## [1.0.2] - 2026-11-11
+### Corrigido
+- Pipeline de release (CI): `build.py` quebrava no runner do GitHub por causa de
+  caractere não-ASCII na saída (cp1252). Agora força UTF-8. O instalador v1.0.1
+  chegou a ser compilado no CI, mas o release não foi publicado por esse erro.
+
 ## [1.0.1] - 2026-11-11
 ### Adicionado
 - Crédito "Desenvolvido por DZK" no app (janela, rodapé e linha de comando).

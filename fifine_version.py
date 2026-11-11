@@ -9,7 +9,7 @@ Ao lançar uma nova versão:
 O app dos usuários detecta a nova tag e se oferece para atualizar.
 """
 
-__version__ = "1.0.1"
+__version__ = "1.0.2"
 
 APP_NAME = "Fifine AM8 Control"
 APP_ID = "FifineAM8Control"              # usado em caminhos/registro
