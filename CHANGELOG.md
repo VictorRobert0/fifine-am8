@@ -3,6 +3,13 @@
 Formato baseado em [Keep a Changelog](https://keepachangelog.com/pt-BR/).
 Versionamento [SemVer](https://semver.org/lang/pt-BR/).
 
+## [1.0.7] - 2026-11-12
+### Adicionado
+- **Reverificação automática em segundo plano**: além da checagem ao abrir, o app
+  agora reconsulta o GitHub periodicamente (a cada 3h) e, se houver versão nova,
+  mostra o banner de atualização **sem precisar reabrir** — silencioso quando já
+  está em dia.
+
 ## [1.0.6] - 2026-11-11
 ### Corrigido
 - **Crash na inicialização / interface "sumindo"** (regressão do 1.0.5): a barra de

@@ -164,6 +164,7 @@ class SkinApp:
         self._update_info = None
         self._tray = None
         self._after_id = None
+        self._recheck_id = None
 
         root.overrideredirect(True)
         root.geometry("880x560")
@@ -180,6 +181,7 @@ class SkinApp:
         self._tick()
         self._start_tray()
         self._auto_update_check()
+        self._schedule_periodic_check()
         if start_tray:
             root.after(100, self.hide_to_tray)
 
@@ -646,10 +648,37 @@ class SkinApp:
         else:
             b.pack(fill="x")
 
+    # intervalo da reverificação automática em segundo plano (3 horas)
+    RECHECK_MS = 3 * 60 * 60 * 1000
+
     def _auto_update_check(self):
         if not self.conf.get("auto_check", True):
             return
         self._run_check(manual=False)
+
+    def _schedule_periodic_check(self):
+        """Reverifica atualizações de tempos em tempos, sem reabrir o app.
+
+        Diferente da checagem de abertura, roda em silêncio: não mostra a barra
+        "Procurando…" nem o aviso "você está em dia" — só exibe o banner quando
+        realmente há uma versão nova. Assim o app percebe um release publicado
+        enquanto está aberto.
+        """
+        self._recheck_id = self.root.after(self.RECHECK_MS, self._periodic_check)
+
+    def _periodic_check(self):
+        if self.conf.get("auto_check", True):
+            def worker():
+                try:
+                    import fifine_update as up
+                    info = up.check()
+                except Exception:
+                    info = None
+                if info and info.available:
+                    self.root.after(0, lambda: self._show_banner(info))
+            threading.Thread(target=worker, daemon=True).start()
+        # reagenda sempre (mesmo com auto_check off, para respeitar se religar)
+        self._recheck_id = self.root.after(self.RECHECK_MS, self._periodic_check)
 
     def _check_updates_manual(self):
         self._run_check(manual=True)
